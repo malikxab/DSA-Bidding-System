@@ -10,11 +10,10 @@ using namespace std;
 // =====================================================
 
 class CircularQueue {
-private:
+public:  // Made public for simplicity (Option 2)
     int front, rear, size, capacity;
     vector<string> arr;
 
-public:
     CircularQueue(int cap) {
         capacity = cap;
         arr.resize(capacity);
@@ -49,19 +48,6 @@ public:
         arr[rear] = name;
         size++;
         cout << name << " joined the queue.\n";
-    }
-
-    string dequeue() {
-        if (isEmpty()) return "";
-        string val = arr[front];
-
-        if (front == rear) {
-            front = rear = -1;
-        } else {
-            front = (front + 1) % capacity;
-        }
-        size--;
-        return val;
     }
 
     int getSize() { return size; }
@@ -123,7 +109,6 @@ public:
         return exists(root, name);
     }
 
-    // Display all users alphabetically
     void displayUsers(Node* node) {
         if (!node) return;
         displayUsers(node->left);
@@ -188,7 +173,7 @@ int timedInput(int timeoutSec, bool &timedOut) {
 }
 
 // =====================================================
-//                   AUCTION LOGIC
+//                   AUCTION LOGIC (CIRCULAR)
 // =====================================================
 
 void startAuction() {
@@ -203,11 +188,21 @@ void startAuction() {
 
     cout << "\n=== AUCTION STARTED ===\n";
 
-    int skips = 0;
     int totalUsers = queue1.getSize();
+    vector<string> circularUsers;
 
-    while (!queue1.isEmpty()) {
-        string user = queue1.dequeue();
+    // Copy queue to circularUsers
+    int i = queue1.front;
+    for (int c = 0; c < queue1.getSize(); c++) {
+        circularUsers.push_back(queue1.arr[i]);
+        i = (i + 1) % queue1.capacity;
+    }
+
+    int index = 0;
+    int consecutiveSkips = 0;
+
+    while (consecutiveSkips < totalUsers) {
+        string user = circularUsers[index];
         cout << "\n" << user << "'s turn.\n";
 
         bool timeout = false;
@@ -215,16 +210,16 @@ void startAuction() {
 
         if (timeout || bid <= highestBid) {
             cout << "Turn skipped.\n";
-            skips++;
-
-            if (skips >= totalUsers) break;
-            continue;
+            consecutiveSkips++;
+        } else {
+            highestBid = bid;
+            highestBidder = user;
+            history.push_back({user, bid});
+            cout << "Bid accepted.\n";
+            consecutiveSkips = 0; // reset because valid bid
         }
 
-        highestBid = bid;
-        highestBidder = user;
-        history.push_back({user, bid});
-        cout << "Bid accepted.\n";
+        index = (index + 1) % totalUsers; // circular
     }
 
     cout << "\n=== AUCTION ENDED ===\n";
@@ -247,7 +242,7 @@ int main() {
         cout << "5. Display Bid History\n";
         cout << "6. Display Queue\n";
         cout << "7. Exit\n";
-        cout << "8. Display Registered Users\n"; // NEW OPTION
+        cout << "8. Display Registered Users\n";
         cout << "Enter choice: ";
 
         int ch;
