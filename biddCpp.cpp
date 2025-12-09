@@ -1,8 +1,7 @@
 #include <iostream>
 #include <chrono>
-#include <conio.h>     // for kbhit()
+#include <conio.h>
 #include <string>
-#include <vector>
 using namespace std;
 
 // =====================================================
@@ -10,15 +9,14 @@ using namespace std;
 // =====================================================
 
 class CircularQueue {
-public:  // Made public for simplicity (Option 2)
+public:
     int front, rear, size, capacity;
-    vector<string> arr;
+    string* arr;
 
     CircularQueue(int cap) {
         capacity = cap;
-        arr.resize(capacity);
-        front = -1;
-        rear = -1;
+        arr = new string[cap];
+        front = rear = -1;
         size = 0;
     }
 
@@ -36,15 +34,9 @@ public:  // Made public for simplicity (Option 2)
     }
 
     void enqueue(string name) {
-        if (isFull()) {
-            cout << "Queue is full!\n";
-            return;
-        }
-        if (isEmpty()) {
-            front = rear = 0;
-        } else {
-            rear = (rear + 1) % capacity;
-        }
+        if (isFull()) { cout << "Queue is full!\n"; return; }
+        if (isEmpty()) front = rear = 0;
+        else rear = (rear + 1) % capacity;
         arr[rear] = name;
         size++;
         cout << name << " joined the queue.\n";
@@ -53,10 +45,7 @@ public:  // Made public for simplicity (Option 2)
     int getSize() { return size; }
 
     void display() {
-        if (isEmpty()) {
-            cout << "Queue is empty.\n";
-            return;
-        }
+        if (isEmpty()) { cout << "Queue is empty.\n"; return; }
         cout << "Queue: ";
         int i = front;
         for (int c = 0; c < size; c++) {
@@ -117,12 +106,89 @@ public:
     }
 
     void showAllUsers() {
-        if (!root) {
-            cout << "No registered users.\n";
-            return;
-        }
+        if (!root) { cout << "No registered users.\n"; return; }
         cout << "Registered Users:\n";
         displayUsers(root);
+    }
+};
+
+// =====================================================
+//                 LINKED LIST (Bid History)
+// =====================================================
+
+struct BidNode {
+    string username;
+    int bid;
+    BidNode* next;
+    BidNode(string u, int b) { username = u; bid = b; next = nullptr; }
+};
+
+class BidHistory {
+public:
+    BidNode* head = nullptr;
+
+    void addBid(string user, int bid) {
+        BidNode* newNode = new BidNode(user, bid);
+        if (!head) head = newNode;
+        else {
+            BidNode* temp = head;
+            while (temp->next) temp = temp->next;
+            temp->next = newNode;
+        }
+    }
+
+    void display() {
+        if (!head) { cout << "No bid history.\n"; return; }
+        cout << "Bid History:\n";
+        BidNode* temp = head;
+        while (temp) {
+            cout << temp->username << " -> " << temp->bid << "\n";
+            temp = temp->next;
+        }
+    }
+
+    void clear() {
+        BidNode* temp = head;
+        while (temp) {
+            BidNode* toDelete = temp;
+            temp = temp->next;
+            delete toDelete;
+        }
+        head = nullptr;
+    }
+};
+
+// =====================================================
+//       LINKED LIST (Circular Users for Auction)
+// =====================================================
+
+struct UserNode {
+    string username;
+    UserNode* next;
+    UserNode(string name) { username = name; next = nullptr; }
+};
+
+class UserList {
+public:
+    UserNode* head = nullptr;
+    UserNode* tail = nullptr;
+
+    void addUser(string name) {
+        UserNode* newNode = new UserNode(name);
+        if (!head) head = tail = newNode;
+        else { tail->next = newNode; tail = newNode; }
+        tail->next = head; // circular link
+    }
+
+    void clear() {
+        if (!head) return;
+        UserNode* curr = head;
+        do {
+            UserNode* toDelete = curr;
+            curr = curr->next;
+            delete toDelete;
+        } while (curr != head);
+        head = tail = nullptr;
     }
 };
 
@@ -132,7 +198,7 @@ public:
 
 UserBST users;
 CircularQueue queue1(20);
-vector<pair<string,int>> history;
+BidHistory history;
 
 int highestBid = 0;
 string highestBidder = "";
@@ -177,10 +243,7 @@ int timedInput(int timeoutSec, bool &timedOut) {
 // =====================================================
 
 void startAuction() {
-    if (queue1.isEmpty()) {
-        cout << "Queue empty. Cannot start auction.\n";
-        return;
-    }
+    if (queue1.isEmpty()) { cout << "Queue empty. Cannot start auction.\n"; return; }
 
     highestBid = 0;
     highestBidder = "";
@@ -188,21 +251,20 @@ void startAuction() {
 
     cout << "\n=== AUCTION STARTED ===\n";
 
+    // Create circular linked list of users
+    UserList circularUsers;
     int totalUsers = queue1.getSize();
-    vector<string> circularUsers;
-
-    // Copy queue to circularUsers
     int i = queue1.front;
-    for (int c = 0; c < queue1.getSize(); c++) {
-        circularUsers.push_back(queue1.arr[i]);
+    for (int c = 0; c < totalUsers; c++) {
+        circularUsers.addUser(queue1.arr[i]);
         i = (i + 1) % queue1.capacity;
     }
 
-    int index = 0;
+    UserNode* curr = circularUsers.head;
     int consecutiveSkips = 0;
 
     while (consecutiveSkips < totalUsers) {
-        string user = circularUsers[index];
+        string user = curr->username;
         cout << "\n" << user << "'s turn.\n";
 
         bool timeout = false;
@@ -214,19 +276,19 @@ void startAuction() {
         } else {
             highestBid = bid;
             highestBidder = user;
-            history.push_back({user, bid});
+            history.addBid(user, bid);
             cout << "Bid accepted.\n";
-            consecutiveSkips = 0; // reset because valid bid
+            consecutiveSkips = 0;
         }
 
-        index = (index + 1) % totalUsers; // circular
+        curr = curr->next; // circular traversal
     }
 
+    circularUsers.clear();
+
     cout << "\n=== AUCTION ENDED ===\n";
-    if (highestBid == 0)
-        cout << "No valid bids.\n";
-    else
-        cout << "Winner: " << highestBidder << " with bid: " << highestBid << "\n";
+    if (highestBid == 0) cout << "No valid bids.\n";
+    else cout << "Winner: " << highestBidder << " with bid: " << highestBid << "\n";
 }
 
 // =====================================================
@@ -235,52 +297,24 @@ void startAuction() {
 
 int main() {
     while (true) {
-        cout << "\n1. Register User\n";
-        cout << "2. Join Queue\n";
-        cout << "3. Start Auction\n";
-        cout << "4. Display Highest Bid\n";
-        cout << "5. Display Bid History\n";
-        cout << "6. Display Queue\n";
-        cout << "7. Exit\n";
-        cout << "8. Display Registered Users\n";
-        cout << "Enter choice: ";
-
+        cout << "\n1. Register User\n2. Join Queue\n3. Start Auction\n4. Display Highest Bid\n5. Display Bid History\n6. Display Queue\n7. Exit\n8. Display Registered Users\nEnter choice: ";
         int ch;
         cin >> ch;
 
         if (ch == 1) {
-            string name;
-            cout << "Enter username: ";
-            cin >> name;
-
+            string name; cout << "Enter username: "; cin >> name;
             if (users.exists(name)) cout << "User already exists.\n";
             else users.registerUser(name);
         }
         else if (ch == 2) {
-            string name;
-            cout << "Enter username: ";
-            cin >> name;
-
-            if (!users.exists(name)) {
-                cout << "User not registered.\n";
-            } else if (queue1.exists(name)) {
-                cout << "User already in queue.\n";
-            } else {
-                queue1.enqueue(name);
-            }
+            string name; cout << "Enter username: "; cin >> name;
+            if (!users.exists(name)) cout << "User not registered.\n";
+            else if (queue1.exists(name)) cout << "User already in queue.\n";
+            else queue1.enqueue(name);
         }
         else if (ch == 3) startAuction();
-        else if (ch == 4) {
-            if (highestBid == 0) cout << "No bids yet.\n";
-            else cout << "Highest bid: " << highestBid << " by " << highestBidder << "\n";
-        }
-        else if (ch == 5) {
-            if (history.empty()) cout << "No bid history.\n";
-            else {
-                cout << "Bid History:\n";
-                for (auto &h : history) cout << h.first << " -> " << h.second << "\n";
-            }
-        }
+        else if (ch == 4) cout << (highestBid == 0 ? "No bids yet.\n" : "Highest bid: " + to_string(highestBid) + " by " + highestBidder + "\n");
+        else if (ch == 5) history.display();
         else if (ch == 6) queue1.display();
         else if (ch == 8) users.showAllUsers();
         else if (ch == 7) break;

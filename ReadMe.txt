@@ -1,7 +1,7 @@
 # Auction System – C++ (3rd Semester DSA Project)
 
-This project is a console-based Auction System developed as part of a 3rd-semester Data Structures and Algorithms (DSA) course.
-The system simulates a real-time auction using core DSA concepts such as Binary Search Trees, Circular Queues, Vectors, and timer-based input handling.
+This project is a **console-based Auction System** developed as part of a 3rd-semester Data Structures and Algorithms (DSA) course.
+It simulates a **real-time auction** using core DSA concepts such as **Binary Search Trees, Circular Queues, Linked Lists, and timer-based input handling**.
 
 ---
 
@@ -9,129 +9,113 @@ The system simulates a real-time auction using core DSA concepts such as Binary 
 
 ### 1. User Registration (BST)
 
-* Users are stored in a Binary Search Tree (BST).
-* Enables fast search and alphabetical display of all registered users.
+* Users are stored in a **Binary Search Tree (BST)**.
+* Enables **fast search** and alphabetical display of all registered users.
 * Prevents duplicate registration.
-* The code includes an in-order traversal for listing users alphabetically.
+* Uses **in-order traversal** to display users alphabetically.
 
 ### 2. Auction Queue (Circular Queue)
 
-* Implements a circular queue using an array and modular indexing.
-* Users join the queue in FIFO order.
-* A user cannot join twice; duplicate entries are blocked.
-* The queue rotates until each user has one chance to bid.
-* The circular queue implementation includes:
+* Implements a **circular queue** using a fixed-size array and modular indexing.
+* Users join the queue in **FIFO order**.
+* Prevents duplicate entries in the queue.
+* The queue rotates until each user has a chance to bid.
+* Methods include:
 
-  * enqueue
-  * dequeue
-  * isFull
-  * isEmpty
-  * exists (checks if a user is already in queue)
+  * `enqueue`
+  * `isFull`
+  * `isEmpty`
+  * `exists` (checks if a user is already in queue)
 
 ### 3. Timed Bidding (5-Second Input Window)
 
-* Each participant has 5 seconds to enter a bid.
-* Implemented using:
+* Each participant has **5 seconds to place a bid**.
+* Uses:
 
-  * chrono (steady_clock)
-  * conio.h (_kbhit and _getch)
-* If no input is entered within the time limit, the turn is skipped.
+  * `chrono` library (`steady_clock`)
+  * `conio.h` (`_kbhit` and `_getch`) for non-blocking input.
+* If no input is entered within the time limit, the turn is skipped automatically.
 
 ### 4. Bid Validation Logic
 
-The system enforces the following real auction rules:
+* Initial bid must be **greater than 0**.
+* Each subsequent bid must be **strictly higher** than the current highest bid.
+* Invalid bids or timeout automatically skip the user's turn.
+* Only valid bids are recorded in the bid history.
 
-* A user **must place an initial bid** higher than 0.
-* Every next bid must be **strictly greater** than the current highest bid.
-* If a user enters a smaller or equal bid, the turn is skipped.
-* Bids are only accepted if valid and within time.
+### 5. Turn-Based Auction (Circular Linked List)
 
-### 5. Turn-Based Auction Using Queue
+* Users take turns in **FIFO order** using a **circular linked list** derived from the queue.
+* The auction continues until:
 
-The auction proceeds in order:
-
-* Each user gets one turn in FIFO order (Circular Queue).
-* If the user fails to bid:
-
-  * due to timeout, or
-  * due to low bid
-    their turn is skipped.
-* The auction ends when:
-
-  * everyone has taken a turn, or
-  * all remaining turns result in skips (meaning no higher bid is placed)
+  * All users have had a turn, or
+  * All consecutive turns result in skipped bids.
 
 ### 6. Highest Bid Tracking
 
-* Stores the highest bid amount and the username of the highest bidder.
-* Updated only when a valid bid is placed.
-* Highest bid can be viewed any time.
+* Tracks the **current highest bid** and the **username of the highest bidder**.
+* Updated only on valid bids.
+* Can be viewed at any time.
 
-### 7. Bid History Tracking
+### 7. Bid History Tracking (Linked List)
 
-* A vector stores all accepted bids in the format:
-  username → amount
-* The full history can be displayed from the menu.
+* A **linked list** stores all accepted bids in the format:
+  `username → amount`
+* Full history can be displayed from the menu.
 
 ### 8. Display Functions
 
-The program supports displaying:
-
-* Queue contents
-* Highest bid
-* Complete bid history
-* Registered user list (in alphabetical BST order)
+* Display **queue contents**
+* Display **highest bid**
+* Display **complete bid history**
+* Display **registered user list** (alphabetical order)
 
 ---
 
 ## Data Structures and Algorithms Used
 
-1. Binary Search Tree (BST)
+1. **Binary Search Tree (BST)**
 
-   * Used for storing and searching registered users.
-   * Also used to display users alphabetically using in-order traversal.
+   * Stores and searches registered users efficiently.
+   * Supports alphabetical display with in-order traversal.
 
-2. Circular Queue (Array-Based)
+2. **Circular Queue (Array-Based)**
 
-   * Used to manage turn order during the auction.
-   * Implements wrap-around indexing with modular arithmetic.
+   * Manages turn order during the auction.
+   * Wrap-around implemented with modular arithmetic.
 
-3. Vector
+3. **Linked List**
 
-   * Stores bid history dynamically.
+   * Stores **bid history** dynamically.
+   * Supports insertion and traversal in sequential order.
 
-4. Timer-Based Input
+4. **Circular Linked List**
 
-   * Implemented using the chrono library and conio.h.
+   * Implements circular user rotation during the auction.
 
-5. Basic OOP Principles
+5. **Timer-Based Input**
 
-   * Custom classes for Queue and BST.
-   * Encapsulation of data structure operations.
+   * Non-blocking input handled with `chrono` and `conio.h`.
+
+6. **Basic OOP Principles**
+
+   * Classes encapsulate **Queue**, **BST**, and **Linked List** operations.
 
 ---
 
 ## Programming Language and Libraries
 
-* Language: C++
-* Standard Libraries Used:
-
-  * iostream
-  * string
-  * vector
-  * chrono
-* Additional Library:
-
-  * conio.h (for low-level keyboard input detection)
+* **Language:** C++
+* **Standard Libraries Used:** `iostream`, `string`, `chrono`
+* **Additional Library:** `conio.h` (for low-level keyboard input detection)
 
 ---
 
 ## Summary
 
-This is a complete 3rd-semester DSA project showcasing:
+This project demonstrates:
 
-* Implementation of classical data structures
-* Real-time input handling
-* Logical flow control for an auction system
-* Interactive menu-driven architecture
-
+* Implementation of **classical data structures** (BST, circular queue, linked list)
+* **Real-time input handling** with timeout
+* Logical flow for an **interactive auction system**
+* **Menu-driven architecture** for easy use and testing
