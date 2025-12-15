@@ -55,7 +55,7 @@ bool try_parse_int(const string& s, int& out) {
 }
 
 // =====================================================
-//            LINKED LIST QUEUE (REPLACEMENT)
+//            LINKED LIST QUEUE
 // =====================================================
 
 struct QueueNode {
