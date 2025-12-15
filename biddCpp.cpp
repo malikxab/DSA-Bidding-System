@@ -1,324 +1,357 @@
 #include <iostream>
-#include <chrono>
-#include <conio.h>
 #include <string>
+#include <chrono>
+#include <future>
+#include <limits>
+#include <cctype>
+#include <algorithm>
+#include <unordered_map>
+
 using namespace std;
 
 // =====================================================
-//                CIRCULAR QUEUE (Array)
+//              HELPERS
 // =====================================================
 
-class CircularQueue {
-public:
-    int front, rear, size, capacity;
-    string* arr;
+string trim_copy(string s) {
+    auto notSpace = [](unsigned char ch) { return !isspace(ch); };
+    s.erase(s.begin(), find_if(s.begin(), s.end(), notSpace));
+    s.erase(find_if(s.rbegin(), s.rend(), notSpace).base(), s.end());
+    return s;
+}
 
-    CircularQueue(int cap) {
-        capacity = cap;
-        arr = new string[cap];
-        front = rear = -1;
-        size = 0;
+string collapse_spaces(string s) {
+    string out;
+    bool space = false;
+    for (char c : s) {
+        if (isspace(c)) {
+            if (!space) out += ' ';
+            space = true;
+        } else {
+            out += c;
+            space = false;
+        }
     }
+    return out;
+}
 
-    bool isEmpty() { return size == 0; }
-    bool isFull() { return size == capacity; }
+string normalize_name(string s) {
+    s = trim_copy(collapse_spaces(s));
+    transform(s.begin(), s.end(), s.begin(), ::tolower);
+    return s;
+}
 
-    bool exists(string name) {
-        if (isEmpty()) return false;
-        int i = front;
-        for (int c = 0; c < size; c++) {
-            if (arr[i] == name) return true;
-            i = (i + 1) % capacity;
+bool try_parse_int(const string& s, int& out) {
+    if (s.empty()) return false;
+    for (char c : s) if (!isdigit(c)) return false;
+    try {
+        long long v = stoll(s);
+        if (v > INT_MAX) return false;
+        out = (int)v;
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+// =====================================================
+//            LINKED LIST QUEUE (REPLACEMENT)
+// =====================================================
+
+struct QueueNode {
+    string key;
+    QueueNode* next;
+    QueueNode(string k) : key(k), next(nullptr) {}
+};
+
+class LinkedQueue {
+private:
+    QueueNode* front;
+    QueueNode* rear;
+    int sz;
+
+public:
+    LinkedQueue() : front(nullptr), rear(nullptr), sz(0) {}
+
+    bool isEmpty() const { return sz == 0; }
+    int size() const { return sz; }
+
+    bool exists(const string& key) const {
+        QueueNode* temp = front;
+        while (temp) {
+            if (temp->key == key) return true;
+            temp = temp->next;
         }
         return false;
     }
 
-    void enqueue(string name) {
-        if (isFull()) { cout << "Queue is full!\n"; return; }
-        if (isEmpty()) front = rear = 0;
-        else rear = (rear + 1) % capacity;
-        arr[rear] = name;
-        size++;
-        cout << name << " joined the queue.\n";
+    void enqueue(const string& key) {
+        QueueNode* n = new QueueNode(key);
+        if (!rear) front = rear = n;
+        else { rear->next = n; rear = n; }
+        sz++;
     }
 
-    int getSize() { return size; }
+    void clear() {
+        while (front) {
+            QueueNode* temp = front;
+            front = front->next;
+            delete temp;
+        }
+        rear = nullptr;
+        sz = 0;
+    }
 
-    void display() {
-        if (isEmpty()) { cout << "Queue is empty.\n"; return; }
+    void display(const unordered_map<string, string>& names) const {
+        if (isEmpty()) {
+            cout << "Queue is empty.\n";
+            return;
+        }
+        QueueNode* temp = front;
         cout << "Queue: ";
-        int i = front;
-        for (int c = 0; c < size; c++) {
-            cout << arr[i] << " ";
-            i = (i + 1) % capacity;
+        while (temp) {
+            cout << names.at(temp->key) << " ";
+            temp = temp->next;
         }
         cout << "\n";
     }
+
+    QueueNode* getFront() const { return front; }
 };
 
 // =====================================================
-//            USER BST (REGISTRATION)
-// =====================================================
-
-struct Node {
-    string username;
-    Node* left;
-    Node* right;
-
-    Node(string name) {
-        username = name;
-        left = right = NULL;
-    }
-};
-
-class UserBST {
-public:
-    Node* root = NULL;
-
-    Node* insert(Node* node, string name) {
-        if (!node) return new Node(name);
-        if (name < node->username) node->left = insert(node->left, name);
-        else if (name > node->username) node->right = insert(node->right, name);
-        return node;
-    }
-
-    void registerUser(string name) {
-        root = insert(root, name);
-        cout << "User '" << name << "' registered.\n";
-    }
-
-    bool exists(Node* node, string name) {
-        if (!node) return false;
-        if (node->username == name) return true;
-        if (name < node->username) return exists(node->left, name);
-        return exists(node->right, name);
-    }
-
-    bool exists(string name) {
-        return exists(root, name);
-    }
-
-    void displayUsers(Node* node) {
-        if (!node) return;
-        displayUsers(node->left);
-        cout << node->username << "\n";
-        displayUsers(node->right);
-    }
-
-    void showAllUsers() {
-        if (!root) { cout << "No registered users.\n"; return; }
-        cout << "Registered Users:\n";
-        displayUsers(root);
-    }
-};
-
-// =====================================================
-//                 LINKED LIST (Bid History)
-// =====================================================
-
-struct BidNode {
-    string username;
-    int bid;
-    BidNode* next;
-    BidNode(string u, int b) { username = u; bid = b; next = nullptr; }
-};
-
-class BidHistory {
-public:
-    BidNode* head = nullptr;
-
-    void addBid(string user, int bid) {
-        BidNode* newNode = new BidNode(user, bid);
-        if (!head) head = newNode;
-        else {
-            BidNode* temp = head;
-            while (temp->next) temp = temp->next;
-            temp->next = newNode;
-        }
-    }
-
-    void display() {
-        if (!head) { cout << "No bid history.\n"; return; }
-        cout << "Bid History:\n";
-        BidNode* temp = head;
-        while (temp) {
-            cout << temp->username << " -> " << temp->bid << "\n";
-            temp = temp->next;
-        }
-    }
-
-    void clear() {
-        BidNode* temp = head;
-        while (temp) {
-            BidNode* toDelete = temp;
-            temp = temp->next;
-            delete toDelete;
-        }
-        head = nullptr;
-    }
-};
-
-// =====================================================
-//       LINKED LIST (Circular Users for Auction)
+//                  USER BST
 // =====================================================
 
 struct UserNode {
-    string username;
-    UserNode* next;
-    UserNode(string name) { username = name; next = nullptr; }
+    string key;
+    UserNode* left;
+    UserNode* right;
+    UserNode(string k) : key(k), left(nullptr), right(nullptr) {}
 };
 
-class UserList {
-public:
-    UserNode* head = nullptr;
-    UserNode* tail = nullptr;
+class UserBST {
+private:
+    UserNode* root = nullptr;
 
-    void addUser(string name) {
-        UserNode* newNode = new UserNode(name);
-        if (!head) head = tail = newNode;
-        else { tail->next = newNode; tail = newNode; }
-        tail->next = head; // circular link
+    UserNode* insert(UserNode* node, const string& key) {
+        if (!node) return new UserNode(key);
+        if (key < node->key) node->left = insert(node->left, key);
+        else if (key > node->key) node->right = insert(node->right, key);
+        return node;
+    }
+
+    bool search(UserNode* node, const string& key) const {
+        if (!node) return false;
+        if (node->key == key) return true;
+        return key < node->key ? search(node->left, key) : search(node->right, key);
+    }
+
+    void inorder(UserNode* node, const unordered_map<string, string>& names) const {
+        if (!node) return;
+        inorder(node->left, names);
+        cout << names.at(node->key) << "\n";
+        inorder(node->right, names);
+    }
+
+    void destroy(UserNode* node) {
+        if (!node) return;
+        destroy(node->left);
+        destroy(node->right);
+        delete node;
+    }
+
+public:
+    ~UserBST() { destroy(root); }
+
+    bool exists(const string& key) const { return search(root, key); }
+
+    void registerUser(const string& key) { root = insert(root, key); }
+
+    void showUsers(const unordered_map<string, string>& names) const {
+        if (!root) cout << "No registered users.\n";
+        else inorder(root, names);
+    }
+};
+
+// =====================================================
+//             BID HISTORY (LINKED LIST)
+// =====================================================
+
+struct BidNode {
+    string key;
+    int bid;
+    BidNode* next;
+    BidNode(string k, int b) : key(k), bid(b), next(nullptr) {}
+};
+
+class BidHistory {
+private:
+    BidNode* head = nullptr;
+    BidNode* tail = nullptr;
+
+public:
+    ~BidHistory() { clear(); }
+
+    void add(const string& key, int bid) {
+        BidNode* n = new BidNode(key, bid);
+        if (!head) head = tail = n;
+        else { tail->next = n; tail = n; }
+    }
+
+    void display(const unordered_map<string, string>& names) const {
+        if (!head) {
+            cout << "No bid history.\n";
+            return;
+        }
+        BidNode* t = head;
+        while (t) {
+            cout << names.at(t->key) << " -> " << t->bid << "\n";
+            t = t->next;
+        }
     }
 
     void clear() {
-        if (!head) return;
-        UserNode* curr = head;
-        do {
-            UserNode* toDelete = curr;
-            curr = curr->next;
-            delete toDelete;
-        } while (curr != head);
-        head = tail = nullptr;
+        while (head) {
+            BidNode* temp = head;
+            head = head->next;
+            delete temp;
+        }
+        tail = nullptr;
     }
 };
 
 // =====================================================
-//            GLOBAL AUCTION VARIABLES
+//                 TIMED INPUT
 // =====================================================
 
-UserBST users;
-CircularQueue queue1(20);
-BidHistory history;
+bool timedInput(int sec, string& out) {
+    cout << "Enter bid within " << sec << " seconds: " << flush;
+    auto fut = async(launch::async, [] {
+        string s;
+        getline(cin, s);
+        return s;
+    });
 
-int highestBid = 0;
-string highestBidder = "";
-
-// =====================================================
-//           INPUT WITH 5 SECOND TIMER
-// =====================================================
-
-int timedInput(int timeoutSec, bool &timedOut) {
-    timedOut = false;
-    string input = "";
-    auto start = chrono::steady_clock::now();
-
-    cout << "Enter bid within " << timeoutSec << " seconds: ";
-
-    while (true) {
-        if (_kbhit()) {
-            char c = _getch();
-            if (isdigit(c)) {
-                cout << c;
-                input += c;
-            } else if (c == '\r') {
-                cout << "\n";
-                break;
-            }
-        }
-
-        auto now = chrono::steady_clock::now();
-        if (chrono::duration_cast<chrono::seconds>(now - start).count() >= timeoutSec) {
-            timedOut = true;
-            cout << "\nTime up! Skipped.\n";
-            return -1;
-        }
+    if (fut.wait_for(chrono::seconds(sec)) == future_status::ready) {
+        out = fut.get();
+        return true;
     }
 
-    if (input == "") return -1;
-    return stoi(input);
+    cout << "\nTime expired!\n";
+    return false;
 }
 
 // =====================================================
-//                   AUCTION LOGIC (CIRCULAR)
+//               AUCTION SYSTEM
 // =====================================================
 
+UserBST users;
+LinkedQueue queue1;
+BidHistory history;
+unordered_map<string, string> displayName;
+
+int highestBid = 0;
+string highestBidder;
+
 void startAuction() {
-    if (queue1.isEmpty()) { cout << "Queue empty. Cannot start auction.\n"; return; }
+
+    if (queue1.size() < 2) {
+        cout << "At least 2 users are required to start the auction.\n";
+        return;
+    }
 
     highestBid = 0;
-    highestBidder = "";
+    highestBidder.clear();
     history.clear();
 
     cout << "\n=== AUCTION STARTED ===\n";
 
-    // Create circular linked list of users
-    UserList circularUsers;
-    int totalUsers = queue1.getSize();
-    int i = queue1.front;
-    for (int c = 0; c < totalUsers; c++) {
-        circularUsers.addUser(queue1.arr[i]);
-        i = (i + 1) % queue1.capacity;
+    int skip = 0;
+    int total = queue1.size();
+    QueueNode* current = queue1.getFront();
+
+    while (skip < total) {
+        cout << displayName[current->key] << "'s turn\n";
+
+        string input;
+        if (timedInput(5, input)) {
+            int bid;
+            if (try_parse_int(input, bid) && bid > highestBid) {
+                highestBid = bid;
+                highestBidder = current->key;
+                history.add(current->key, bid);
+                cout << "Bid accepted!\n";
+                skip = 0;
+            } else {
+                cout << "Invalid bid.\n";
+                skip++;
+            }
+        } else skip++;
+
+        current = current->next ? current->next : queue1.getFront();
     }
-
-    UserNode* curr = circularUsers.head;
-    int consecutiveSkips = 0;
-
-    while (consecutiveSkips < totalUsers) {
-        string user = curr->username;
-        cout << "\n" << user << "'s turn.\n";
-
-        bool timeout = false;
-        int bid = timedInput(5, timeout);
-
-        if (timeout || bid <= highestBid) {
-            cout << "Turn skipped.\n";
-            consecutiveSkips++;
-        } else {
-            highestBid = bid;
-            highestBidder = user;
-            history.addBid(user, bid);
-            cout << "Bid accepted.\n";
-            consecutiveSkips = 0;
-        }
-
-        curr = curr->next; // circular traversal
-    }
-
-    circularUsers.clear();
 
     cout << "\n=== AUCTION ENDED ===\n";
-    if (highestBid == 0) cout << "No valid bids.\n";
-    else cout << "Winner: " << highestBidder << " with bid: " << highestBid << "\n";
+    if (highestBid > 0)
+        cout << "Winner: " << displayName[highestBidder] << " with bid " << highestBid << "\n";
+    else
+        cout << "No valid bids.\n";
+
+    queue1.clear();
 }
 
 // =====================================================
-//                         MAIN
+//                    MAIN
 // =====================================================
 
 int main() {
     while (true) {
-        cout << "\n1. Register User\n2. Join Queue\n3. Start Auction\n4. Display Highest Bid\n5. Display Bid History\n6. Display Queue\n7. Exit\n8. Display Registered Users\nEnter choice: ";
+        cout << "\n1. Register User\n2. Join Queue\n3. Start Auction\n"
+             << "4. Highest Bid\n5. Bid History\n6. Display Queue\n"
+             << "7. Exit\n8. Display Registered Users\nChoice: ";
+
+        string line;
+        getline(cin, line);
         int ch;
-        cin >> ch;
+        if (!try_parse_int(line, ch)) continue;
 
         if (ch == 1) {
-            string name; cout << "Enter username: "; cin >> name;
-            if (users.exists(name)) cout << "User already exists.\n";
-            else users.registerUser(name);
+            cout << "Enter username: ";
+            string raw;
+            getline(cin, raw);
+            string key = normalize_name(raw);
+            string show = trim_copy(raw);
+
+            if (users.exists(key)) cout << "User already exists.\n";
+            else {
+                users.registerUser(key);
+                displayName[key] = show;
+                cout << "User registered.\n";
+            }
         }
         else if (ch == 2) {
-            string name; cout << "Enter username: "; cin >> name;
-            if (!users.exists(name)) cout << "User not registered.\n";
-            else if (queue1.exists(name)) cout << "User already in queue.\n";
-            else queue1.enqueue(name);
+            cout << "Enter username: ";
+            string raw;
+            getline(cin, raw);
+            string key = normalize_name(raw);
+
+            if (!users.exists(key)) cout << "User not registered.\n";
+            else if (queue1.exists(key)) cout << "User already in queue.\n";
+            else {
+                queue1.enqueue(key);
+                cout << "Joined queue.\n";
+            }
         }
         else if (ch == 3) startAuction();
-        else if (ch == 4) cout << (highestBid == 0 ? "No bids yet.\n" : "Highest bid: " + to_string(highestBid) + " by " + highestBidder + "\n");
-        else if (ch == 5) history.display();
-        else if (ch == 6) queue1.display();
-        else if (ch == 8) users.showAllUsers();
+        else if (ch == 4) {
+            if (highestBid == 0) cout << "No bids yet.\n";
+            else cout << "Highest bid: " << highestBid << " by " << displayName[highestBidder] << "\n";
+        }
+        else if (ch == 5) history.display(displayName);
+        else if (ch == 6) queue1.display(displayName);
+        else if (ch == 8) users.showUsers(displayName);
         else if (ch == 7) break;
     }
-
     return 0;
 }
